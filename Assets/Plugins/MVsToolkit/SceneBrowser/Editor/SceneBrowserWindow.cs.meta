@@ -1,0 +1,9 @@
+fileFormatVersion: 2
+guid: b1e5e9759d6fa91458f2b095e153e769
+AssetOrigin:
+  serializedVersion: 1
+  productId: 344762
+  packageName: MV's Toolkit Hierarchy
+  packageVersion: 0.10.0
+  assetPath: Assets/Plugins/MVsToolkit/SceneBrowser/Editor/SceneBrowserWindow.cs
+  uploadId: 861532

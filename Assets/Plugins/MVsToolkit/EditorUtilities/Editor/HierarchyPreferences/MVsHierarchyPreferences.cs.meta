@@ -1,0 +1,9 @@
+fileFormatVersion: 2
+guid: 1c31adf446dcdfc4fbc408c0c57f7366
+AssetOrigin:
+  serializedVersion: 1
+  productId: 344762
+  packageName: MV's Toolkit Hierarchy
+  packageVersion: 0.10.0
+  assetPath: Assets/Plugins/MVsToolkit/EditorUtilities/Editor/HierarchyPreferences/MVsHierarchyPreferences.cs
+  uploadId: 861532

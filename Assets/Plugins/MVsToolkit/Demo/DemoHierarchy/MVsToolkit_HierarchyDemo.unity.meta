@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 399b58beb0665694c9269dc7137368a0
+DefaultImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 344762
+  packageName: MV's Toolkit Hierarchy
+  packageVersion: 0.10.0
+  assetPath: Assets/Plugins/MVsToolkit/Demo/DemoHierarchy/MVsToolkit_HierarchyDemo.unity
+  uploadId: 861532
