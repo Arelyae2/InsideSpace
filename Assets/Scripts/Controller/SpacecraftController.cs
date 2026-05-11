@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Unity.Cinemachine;
-using TMPro; // Required for TextMeshPro UI
+using TMPro;
 
 [RequireComponent(typeof(Rigidbody))]
 public class SpacecraftController : MonoBehaviour
@@ -20,8 +20,11 @@ public class SpacecraftController : MonoBehaviour
     public float cameraSensitivity = 100f;
 
     [Header("UI Debug Settings")]
-    [Tooltip("Drag a TextMeshPro - Text (GUI) object here")]
     public TextMeshProUGUI speedDebugText;
+
+    [Header("Gizmo Settings")]
+    public bool drawMovementGizmos = true;
+    public float gizmoScale = 2f;
 
     [Header("Input Action References")]
     public InputActionReference upThrustAction;
@@ -40,14 +43,13 @@ public class SpacecraftController : MonoBehaviour
     private void Awake()
     {
         rb = GetComponent<Rigidbody>();
-
         rb.useGravity = false;
         rb.interpolation = RigidbodyInterpolation.Interpolate;
+        rb.linearDamping = 0f;
+        rb.angularDamping = 0f;
 
         if (orbitalCamera != null)
-        {
             orbitalFollow = orbitalCamera.GetComponent<CinemachineOrbitalFollow>();
-        }
     }
 
     private void OnEnable()
@@ -77,22 +79,17 @@ public class SpacecraftController : MonoBehaviour
     {
         float upRaw = upThrustAction.action.ReadValue<float>();
         float downRaw = downThrustAction.action.ReadValue<float>();
-        float netVertical = upRaw - downRaw;
-
-        rb.AddRelativeForce(Vector3.up * netVertical * verticalThrustMultiplier, ForceMode.Force);
+        rb.AddRelativeForce(Vector3.up * (upRaw - downRaw) * verticalThrustMultiplier, ForceMode.Force);
 
         Vector2 horizontalInput = horizontalThrustAction.action.ReadValue<Vector2>();
-        Vector3 horizontalForce = new Vector3(horizontalInput.x, 0f, horizontalInput.y);
-        rb.AddRelativeForce(horizontalForce * horizontalThrustMultiplier, ForceMode.Force);
+        rb.AddRelativeForce(new Vector3(horizontalInput.x, 0f, horizontalInput.y) * horizontalThrustMultiplier, ForceMode.Force);
     }
 
     private void HandleRotation()
     {
         float leftRot = rotateLeftAction.action.ReadValue<float>();
         float rightRot = rotateRightAction.action.ReadValue<float>();
-        float netRotation = rightRot - leftRot;
-
-        rb.AddRelativeTorque(Vector3.up * netRotation * rotationThrustMultiplier, ForceMode.Force);
+        rb.AddRelativeTorque(Vector3.up * (rightRot - leftRot) * rotationThrustMultiplier, ForceMode.Force);
     }
 
     private void HandleStabilisation()
@@ -115,10 +112,8 @@ public class SpacecraftController : MonoBehaviour
     private void HandleCameraSync()
     {
         if (orbitalFollow == null) return;
-
         Vector2 camInput = cameraStickAction.action.ReadValue<Vector2>();
         cameraYawOffset += camInput.x * cameraSensitivity * Time.fixedDeltaTime;
-
         orbitalFollow.HorizontalAxis.Value = transform.eulerAngles.y + cameraYawOffset;
         orbitalFollow.VerticalAxis.Value += camInput.y * (cameraSensitivity * 0.5f) * Time.fixedDeltaTime;
     }
@@ -127,24 +122,40 @@ public class SpacecraftController : MonoBehaviour
     {
         if (speedDebugText == null) return;
 
-        // Calculate speeds
-        float linearSpeed = rb.linearVelocity.magnitude;
-        float verticalSpeed = rb.linearVelocity.y; // World Y speed
-        float angularSpeed = rb.angularVelocity.magnitude;
+        Vector3 localVel = transform.InverseTransformDirection(rb.linearVelocity);
+        Vector3 localAng = transform.InverseTransformDirection(rb.angularVelocity);
 
-        // Construct the debug string
-        // We use rich text tags (<b>) for readability
-        string debugInfo = $"<b>SPEED TELEMETRY</b>\n" +
-                           $"Linear Velocity: {linearSpeed:F2} m/s\n" +
-                           $"Vertical Delta: {verticalSpeed:F2} m/s\n" +
-                           $"Angular Spin: {angularSpeed:F2} rad/s\n" +
-                           $"Stabilizer: {(stabilizeAction.action.IsPressed() ? "<color=green>ON</color>" : "<color=red>OFF</color>")}";
-
-        speedDebugText.text = debugInfo;
+        speedDebugText.text = $"<b>[ LINEAR VELOCITY ]</b>\n" +
+                             $"X: {localVel.x,6:F2} | Y: {localVel.y,6:F2} | Z: {localVel.z,6:F2}\n" +
+                             $"<b>[ ROTATIONAL VELOCITY ]</b>\n" +
+                             $"X: {localAng.x,6:F2} | Y: {localAng.y,6:F2} | Z: {localAng.z,6:F2}";
     }
 
-    private void OnDockAttempt(InputAction.CallbackContext context)
+    private void OnDrawGizmos()
     {
-        Debug.Log("[System] Docking Attempt initiated.");
+        if (!drawMovementGizmos || rb == null) return;
+
+        Vector3 pos = transform.position;
+
+        // --- Draw Linear Velocity Vector (Yellow) ---
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawRay(pos, rb.linearVelocity * gizmoScale);
+        Gizmos.DrawSphere(pos + rb.linearVelocity * gizmoScale, 0.1f);
+
+        // --- Draw Local Axis Indicators (Helpful for orientation) ---
+        // Red = Right (X), Green = Up (Y), Blue = Forward (Z)
+        Gizmos.color = Color.red;
+        Gizmos.DrawRay(pos, transform.right * gizmoScale * 0.5f);
+        Gizmos.color = Color.green;
+        Gizmos.DrawRay(pos, transform.up * gizmoScale * 0.5f);
+        Gizmos.color = Color.blue;
+        Gizmos.DrawRay(pos, transform.forward * gizmoScale * 0.5f);
+
+        // --- Draw Angular Velocity (Cyan) ---
+        // The ray points along the axis of rotation
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawRay(pos, rb.angularVelocity * gizmoScale);
     }
+
+    private void OnDockAttempt(InputAction.CallbackContext context) => Debug.Log("Docking Attempt...");
 }
